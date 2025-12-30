@@ -9,7 +9,7 @@ app.secret_key = os.environ.get('SECRET_KEY', 'your-secret-key-change-in-product
 CORS(app, supports_credentials=True)  # Enable CORS for frontend with credentials support
 
 # Initialize Groq client
-GROQ_API_KEY = os.environ.get('GROQ_API_KEY', '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')
+GROQ_API_KEY = os.environ.get('GROQ_API_KEY', '')
 client = Groq(api_key=GROQ_API_KEY)
 
 # System prompt for Horse Health Record Interpreter
@@ -120,19 +120,20 @@ def chat():
         # Build context message with optional metadata
         context_parts = []
         
+        # Include horse information in the prompt if provided
+        if horse_age or horse_breed or activity_level:
+            metadata_parts = []
+            if horse_age:
+                metadata_parts.append(f"Horse Age: {horse_age}")
+            if horse_breed:
+                metadata_parts.append(f"Breed: {horse_breed}")
+            if activity_level:
+                metadata_parts.append(f"Activity Level: {activity_level}")
+            if metadata_parts:
+                context_parts.append(f"HORSE INFORMATION:\n{', '.join(metadata_parts)}\n")
+        
         if document_text:
             context_parts.append(f"HEALTH RECORD DOCUMENT:\n{document_text}")
-        
-        if horse_age or horse_breed or activity_level:
-            metadata = []
-            if horse_age:
-                metadata.append(f"Age: {horse_age}")
-            if horse_breed:
-                metadata.append(f"Breed: {horse_breed}")
-            if activity_level:
-                metadata.append(f"Activity Level: {activity_level}")
-            if metadata:
-                context_parts.append(f"\nOPTIONAL CONTEXT:\n{', '.join(metadata)}")
         
         # Build messages array for Groq API
         messages = [
@@ -156,13 +157,22 @@ def chat():
                 })
         
         # Build the user message
+        # Always include document context if present, even for follow-up questions
         user_content = ''
         if context_parts:
             user_content = '\n\n'.join(context_parts)
             if user_message:
-                user_content += f"\n\nUSER QUESTION: {user_message}"
+                # For follow-up questions, make it clear this is a question about the document
+                if document_text and user_message:
+                    user_content += f"\n\nUSER QUESTION (about the above document): {user_message}"
+                else:
+                    user_content += f"\n\nUSER QUESTION: {user_message}"
         else:
             user_content = user_message
+        
+        # If document exists but wasn't in context_parts (shouldn't happen, but safety check)
+        if document_text and document_text not in user_content:
+            user_content = f"HEALTH RECORD DOCUMENT:\n{document_text}\n\n{user_content}"
         
         messages.append({
             "role": "user",
@@ -214,4 +224,3 @@ def health():
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 8080))
     app.run(host='0.0.0.0', port=port, debug=os.environ.get('FLASK_ENV') == 'development')
-
