@@ -9,7 +9,7 @@ app.secret_key = os.environ.get('SECRET_KEY', 'your-secret-key-change-in-product
 CORS(app, supports_credentials=True)  # Enable CORS for frontend with credentials support
 
 # Initialize Groq client
-GROQ_API_KEY = os.environ.get('GROQ_API_KEY', '')
+GROQ_API_KEY = os.environ.get('GROQ_API_KEY', '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')
 client = Groq(api_key=GROQ_API_KEY)
 
 # System prompt for Horse Health Record Interpreter
@@ -224,3 +224,4 @@ def health():
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 8080))
     app.run(host='0.0.0.0', port=port, debug=os.environ.get('FLASK_ENV') == 'development')
+
